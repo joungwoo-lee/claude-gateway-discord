@@ -1,6 +1,8 @@
 # Discord ↔ Claude Code Gateway Bot
 
-A gateway bot that maintains independent Claude Code sessions per Discord thread, forwarding user messages to Claude Code and streaming responses back to Discord.
+**Use Claude Code CLI like OpenClaw through Discord** — Control Claude Code directly from Discord, manage different models per session, and leverage RAG-powered access to past conversation history.
+
+A gateway bot that maintains independent Claude Code sessions per Discord thread, forwarding user messages to Claude Code and streaming responses back to Discord. Perfect for developers who want interactive Claude Code workflows within Discord without leaving your chat.
 
 ## Quick Start
 
