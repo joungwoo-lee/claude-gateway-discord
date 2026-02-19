@@ -12,40 +12,42 @@ echo "[2/5] 우분투(Ubuntu) 환경 설치..."
 proot-distro list | grep -q "installed" || proot-distro install ubuntu
 
 echo "[3/5] 사용자 생성 및 개발 환경 구축..."
-proot-distro login ubuntu --bind "$TERMUX_PROJECT_DIR:$UBUNTU_MOUNT_DIR" -- bash -c "
-  set -euo pipefail
-  apt update && apt install -y sudo curl git python3 python3-pip python3-venv
+proot-distro login ubuntu --bind "$TERMUX_PROJECT_DIR:$UBUNTU_MOUNT_DIR" -- bash -s -- "$UBUNTU_MOUNT_DIR" <<'UBUNTU_SCRIPT'
+set -euo pipefail
 
-  # claudegateway 사용자 생성 및 sudo 권한 부여
-  if ! id 'claudegateway' &>/dev/null; then
-    adduser --disabled-password --gecos '' claudegateway
-    usermod -aG sudo claudegateway
-    echo 'claudegateway ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-  fi
+MOUNT_DIR="$1"
+apt update && apt install -y sudo curl git python3 python3-pip python3-venv
 
-  # claudegateway 계정으로 작업 수행
-  sudo -u claudegateway bash -c '
-    set -euo pipefail
+# claudegateway 사용자 생성 및 sudo 권한 부여
+if ! id 'claudegateway' &>/dev/null; then
+  adduser --disabled-password --gecos '' claudegateway
+  usermod -aG sudo claudegateway
+  echo 'claudegateway ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+fi
 
-    # 1. Claude Code 설치
-    curl -fsSL https://claude.ai/install.sh | bash
-    echo "export PATH=\\$HOME/.local/bin:\\$PATH" >> ~/.bashrc
+# claudegateway 계정으로 작업 수행
+sudo -u claudegateway env UBUNTU_MOUNT_DIR="$MOUNT_DIR" bash -s <<'USER_SCRIPT'
+set -euo pipefail
 
-    # 2. Termux에서 받은 프로젝트를 Ubuntu 홈으로 복사 후 setup.sh 실행
-    PROJECT_DIR="\\$HOME/claude-gateway-discord"
-    mkdir -p "\\$PROJECT_DIR"
-    cp -a "\"$UBUNTU_MOUNT_DIR\"/." "\\$PROJECT_DIR/"
+# 1. Claude Code 설치
+curl -fsSL https://claude.ai/install.sh | bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
-    if [ -f "\\$PROJECT_DIR/setup.sh" ]; then
-      cd "\\$PROJECT_DIR"
-      chmod +x setup.sh
-      ./setup.sh
-    else
-      echo "❌ setup.sh not found in: \\$PROJECT_DIR"
-      exit 1
-    fi
-  '
-"
+# 2. Termux에서 받은 프로젝트를 Ubuntu 홈으로 복사 후 setup.sh 실행
+PROJECT_DIR="$HOME/claude-gateway-discord"
+mkdir -p "$PROJECT_DIR"
+cp -a "$UBUNTU_MOUNT_DIR"/. "$PROJECT_DIR"/
+
+if [ -f "$PROJECT_DIR/setup.sh" ]; then
+  cd "$PROJECT_DIR"
+  chmod +x setup.sh
+  ./setup.sh
+else
+  echo "❌ setup.sh not found in: $PROJECT_DIR"
+  exit 1
+fi
+USER_SCRIPT
+UBUNTU_SCRIPT
 
 echo "[4/5] Termux 시작 시 자동 로그인 설정..."
 sed -i '/proot-distro login ubuntu/d' ~/.bashrc
