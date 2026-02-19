@@ -112,30 +112,7 @@ cd claude-gateway-discord
 2. Copy and paste the script below into Termux to install Ubuntu, Claude Code, and this gateway.
 
 ```bash
-cat << 'EOF' > setup_all.sh
-#!/data/data/com.termux/files/usr/bin/bash
-set -euo pipefail
-
-echo "[1/4] Termux 패키지 업데이트 및 Git 설치..."
-pkg update -y && pkg upgrade -y
-pkg install git -y
-
-echo "[2/4] 레포지토리 클론..."
-if [ ! -d "claude-gateway-discord" ]; then
-  git clone https://github.com/joungwoo-lee/claude-gateway-discord.git
-fi
-
-cd claude-gateway-discord
-
-echo "[3/4] Android Termux setup 스크립트 실행..."
-chmod +x setup_on_android_termux.sh
-./setup_on_android_termux.sh
-
-echo "[4/4] 완료"
-EOF
-
-chmod +x setup_all.sh
-./setup_all.sh
+pkg update -y && pkg upgrade -y && pkg install git -y && ( [ -d claude-gateway-discord ] || git clone https://github.com/joungwoo-lee/claude-gateway-discord.git ) && cd claude-gateway-discord && chmod +x setup_on_android_termux.sh && ./setup_on_android_termux.sh
 ```
 
 3. After install finishes, type `exit` to leave Termux, then open Termux again.
@@ -383,30 +360,7 @@ cd claude-gateway-discord
 2. 아래 스크립트를 복사해서 Termux에 붙여 넣으면 Ubuntu, Claude Code, 게이트웨이 설치가 진행됩니다.
 
 ```bash
-cat << 'EOF' > setup_all.sh
-#!/data/data/com.termux/files/usr/bin/bash
-set -euo pipefail
-
-echo "[1/4] Termux 패키지 업데이트 및 Git 설치..."
-pkg update -y && pkg upgrade -y
-pkg install git -y
-
-echo "[2/4] 레포지토리 클론..."
-if [ ! -d "claude-gateway-discord" ]; then
-  git clone https://github.com/joungwoo-lee/claude-gateway-discord.git
-fi
-
-cd claude-gateway-discord
-
-echo "[3/4] Android Termux setup 스크립트 실행..."
-chmod +x setup_on_android_termux.sh
-./setup_on_android_termux.sh
-
-echo "[4/4] 완료"
-EOF
-
-chmod +x setup_all.sh
-./setup_all.sh
+pkg update -y && pkg upgrade -y && pkg install git -y && ( [ -d claude-gateway-discord ] || git clone https://github.com/joungwoo-lee/claude-gateway-discord.git ) && cd claude-gateway-discord && chmod +x setup_on_android_termux.sh && ./setup_on_android_termux.sh
 ```
 
 3. 설치가 끝나면 `exit`를 입력해 Termux를 빠져나옵니다.
