@@ -114,56 +114,24 @@ cd claude-gateway-discord
 ```bash
 cat << 'EOF' > setup_all.sh
 #!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
 
-echo "[1/5] Termux 기본 시스템 업데이트 및 설치..."
+echo "[1/4] Termux 패키지 업데이트 및 Git 설치..."
 pkg update -y && pkg upgrade -y
-pkg install proot-distro -y
+pkg install git -y
 
-echo "[2/5] 우분투(Ubuntu) 환경 설치..."
-proot-distro list | grep -q "installed" || proot-distro install ubuntu
+echo "[2/4] 레포지토리 클론..."
+if [ ! -d "claude-gateway-discord" ]; then
+  git clone https://github.com/joungwoo-lee/claude-gateway-discord.git
+fi
 
-echo "[3/5] 사용자 생성 및 개발 환경 구축..."
-proot-distro login ubuntu -- bash -c "
-  apt update && apt install -y sudo curl git python3 python3-pip python3-venv
+cd claude-gateway-discord
 
-  # claudegateway 사용자 생성 및 sudo 권한 부여
-  if ! id 'claudegateway' &>/dev/null; then
-    adduser --disabled-password --gecos '' claudegateway
-    usermod -aG sudo claudegateway
-    echo 'claudegateway ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-  fi
+echo "[3/4] Android Termux setup 스크립트 실행..."
+chmod +x setup_on_android_termux.sh
+./setup_on_android_termux.sh
 
-  # claudegateway 계정으로 작업 수행
-  sudo -u claudegateway bash -c '
-    # 1. Claude Code 설치
-    curl -fsSL https://claude.ai/install.sh | bash
-    echo "export PATH=\$HOME/.local/bin:\$PATH" >> ~/.bashrc
-
-    # 2. GitHub 레포지토리 클론 (이미 있으면 건너뜀)
-    cd ~
-    if [ ! -d "claude-gateway-discord" ]; then
-      git clone https://github.com/joungwoo-lee/claude-gateway-discord.git
-    fi
-
-    # 3. 프로젝트 폴더 진입 및 setup.sh 실행
-    cd ~/claude-gateway-discord
-    if [ -f "setup.sh" ]; then
-      chmod +x setup.sh
-      ./setup.sh
-    fi
-  '
-"
-
-echo "[4/5] Termux 시작 시 자동 로그인 설정..."
-sed -i '/proot-distro login ubuntu/d' ~/.bashrc
-echo "proot-distro login ubuntu --user claudegateway" >> ~/.bashrc
-
-echo "------------------------------------------------"
-echo "✅ 모든 설정과 프로젝트 셋업이 완료되었습니다!"
-echo "1. Termux를 완전히 종료(상단 알림창 Exit) 후 다시 켜세요."
-echo "2. 자동으로 'claudegateway' 계정으로 접속됩니다."
-echo "3. 프로젝트 폴더: ~/claude-gateway-discord"
-echo "------------------------------------------------"
+echo "[4/4] 완료"
 EOF
 
 chmod +x setup_all.sh
@@ -416,56 +384,24 @@ cd claude-gateway-discord
 ```bash
 cat << 'EOF' > setup_all.sh
 #!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
 
-echo "[1/5] Termux 기본 시스템 업데이트 및 설치..."
+echo "[1/4] Termux 패키지 업데이트 및 Git 설치..."
 pkg update -y && pkg upgrade -y
-pkg install proot-distro -y
+pkg install git -y
 
-echo "[2/5] 우분투(Ubuntu) 환경 설치..."
-proot-distro list | grep -q "installed" || proot-distro install ubuntu
+echo "[2/4] 레포지토리 클론..."
+if [ ! -d "claude-gateway-discord" ]; then
+  git clone https://github.com/joungwoo-lee/claude-gateway-discord.git
+fi
 
-echo "[3/5] 사용자 생성 및 개발 환경 구축..."
-proot-distro login ubuntu -- bash -c "
-  apt update && apt install -y sudo curl git python3 python3-pip python3-venv
+cd claude-gateway-discord
 
-  # claudegateway 사용자 생성 및 sudo 권한 부여
-  if ! id 'claudegateway' &>/dev/null; then
-    adduser --disabled-password --gecos '' claudegateway
-    usermod -aG sudo claudegateway
-    echo 'claudegateway ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-  fi
+echo "[3/4] Android Termux setup 스크립트 실행..."
+chmod +x setup_on_android_termux.sh
+./setup_on_android_termux.sh
 
-  # claudegateway 계정으로 작업 수행
-  sudo -u claudegateway bash -c '
-    # 1. Claude Code 설치
-    curl -fsSL https://claude.ai/install.sh | bash
-    echo "export PATH=\$HOME/.local/bin:\$PATH" >> ~/.bashrc
-
-    # 2. GitHub 레포지토리 클론 (이미 있으면 건너뜀)
-    cd ~
-    if [ ! -d "claude-gateway-discord" ]; then
-      git clone https://github.com/joungwoo-lee/claude-gateway-discord.git
-    fi
-
-    # 3. 프로젝트 폴더 진입 및 setup.sh 실행
-    cd ~/claude-gateway-discord
-    if [ -f "setup.sh" ]; then
-      chmod +x setup.sh
-      ./setup.sh
-    fi
-  '
-"
-
-echo "[4/5] Termux 시작 시 자동 로그인 설정..."
-sed -i '/proot-distro login ubuntu/d' ~/.bashrc
-echo "proot-distro login ubuntu --user claudegateway" >> ~/.bashrc
-
-echo "------------------------------------------------"
-echo "✅ 모든 설정과 프로젝트 셋업이 완료되었습니다!"
-echo "1. Termux를 완전히 종료(상단 알림창 Exit) 후 다시 켜세요."
-echo "2. 자동으로 'claudegateway' 계정으로 접속됩니다."
-echo "3. 프로젝트 폴더: ~/claude-gateway-discord"
-echo "------------------------------------------------"
+echo "[4/4] 완료"
 EOF
 
 chmod +x setup_all.sh
