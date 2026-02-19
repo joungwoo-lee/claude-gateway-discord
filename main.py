@@ -19,7 +19,10 @@ import json
 import uuid
 import asyncio
 import logging
+import re
 from pathlib import Path
+
+import aiohttp
 from dotenv import load_dotenv
 import discord
 
@@ -53,6 +56,10 @@ log = logging.getLogger("claude-gw")
 DISCORD_MAX_LEN = 1900
 STREAM_INTERVAL = 1.5
 PROCESS_TIMEOUT = 600
+ATTACHMENTS_ROOT = Path.home() / ".claude" / "gateway-sessions" / "attachments"
+MAX_ATTACHMENT_BYTES = int(os.getenv("MAX_ATTACHMENT_BYTES", str(20 * 1024 * 1024)))
+MAX_UPLOAD_BYTES = int(os.getenv("MAX_UPLOAD_BYTES", str(20 * 1024 * 1024)))
+FILE_DIRECTIVE_RE = re.compile(r"^\s*FILE\s*:\s*(.+?)\s*$", re.MULTILINE)
 
 # 세션 매핑 파일 (봇 재시작해도 유지) - 고정 경로 사용
 SESSION_MAP_FILE = Path.home() / ".claude" / "gateway-sessions" / "sessions.json"
@@ -74,6 +81,103 @@ def chunk_text(text: str, limit: int = DISCORD_MAX_LEN) -> list[str]:
         chunks.append(text)
     return chunks
 
+
+
+
+def sanitize_filename(name: str) -> str:
+    """파일명에서 위험한 문자 제거"""
+    safe = "".join(c for c in name if c.isalnum() or c in ("-", "_", "."))
+    return safe[:120] or "attachment"
+
+
+async def download_attachments(message: discord.Message, thread_id: int) -> list[Path]:
+    """Discord 첨부파일을 로컬에 저장"""
+    if not message.attachments:
+        return []
+
+    saved: list[Path] = []
+    target_dir = ATTACHMENTS_ROOT / str(thread_id)
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    timeout = aiohttp.ClientTimeout(total=120)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        for att in message.attachments:
+            if att.size and att.size > MAX_ATTACHMENT_BYTES:
+                await message.channel.send(
+                    f"⚠️ `{att.filename}` 파일이 너무 큽니다 ({att.size:,} bytes). 최대 {MAX_ATTACHMENT_BYTES:,} bytes까지 허용됩니다."
+                )
+                continue
+
+            filename = f"{int(message.created_at.timestamp())}_{sanitize_filename(att.filename)}"
+            out_path = target_dir / filename
+
+            try:
+                async with session.get(att.url) as resp:
+                    resp.raise_for_status()
+                    data = await resp.read()
+                out_path.write_bytes(data)
+                saved.append(out_path)
+            except Exception as e:
+                log.warning("첨부파일 저장 실패 (%s): %s", att.filename, e)
+                await message.channel.send(f"⚠️ `{att.filename}` 저장 실패: {e}")
+
+    return saved
+
+
+def build_prompt_with_attachments(prompt: str, files: list[Path]) -> str:
+    if not files:
+        return prompt
+
+    lines = [prompt, "", "[첨부파일] 아래 로컬 파일들을 참고해 답변하세요:"]
+    for f in files:
+        lines.append(f"- {f}")
+    return "\n".join(lines)
+
+
+def extract_file_directives(text: str) -> list[Path]:
+    paths: list[Path] = []
+    for m in FILE_DIRECTIVE_RE.findall(text):
+        raw = m.strip().strip("`").strip('"').strip("'")
+        if not raw:
+            continue
+        p = Path(raw).expanduser()
+        if not p.is_absolute():
+            p = Path.cwd() / p
+        paths.append(p)
+
+    # 중복 제거(순서 유지)
+    uniq: list[Path] = []
+    seen: set[str] = set()
+    for p in paths:
+        key = str(p)
+        if key in seen:
+            continue
+        seen.add(key)
+        uniq.append(p)
+    return uniq
+
+
+async def send_files_from_directives(channel: discord.Thread | discord.TextChannel, text: str):
+    files = extract_file_directives(text)
+    for path in files:
+        try:
+            if not path.exists() or not path.is_file():
+                await channel.send(f"⚠️ 파일 전송 실패: `{path}` (파일이 없음)")
+                continue
+            size = path.stat().st_size
+            if size > MAX_UPLOAD_BYTES:
+                await channel.send(
+                    f"⚠️ 파일 전송 실패: `{path.name}` 크기 {size:,} bytes (최대 {MAX_UPLOAD_BYTES:,} bytes)"
+                )
+                continue
+
+            await channel.send(
+                f"📎 파일 전송: `{path.name}`",
+                file=discord.File(str(path), filename=path.name),
+            )
+        except Exception as e:
+            log.warning("파일 전송 실패 (%s): %s", path, e)
+            await channel.send(f"⚠️ 파일 전송 실패: `{path}` ({e})")
 
 def get_default_model() -> str:
     """
@@ -351,6 +455,9 @@ class ClaudeGateway:
                 await thread.send(chunk)
                 await asyncio.sleep(0.3)
 
+            # Claude 응답 내 FILE: /path 지시가 있으면 첨부파일로 전송
+            await send_files_from_directives(thread, output_buffer.strip())
+
             # 세션 대화 로깅
             thread_name = getattr(thread, "name", "")
             try:
@@ -407,7 +514,7 @@ async def on_ready():
                     "🟢 **Claude Code 게이트웨이 온라인**\n"
                     "메시지를 보내면 자동으로 스레드가 생성되고 Claude Code와 대화합니다.\n"
                     "스레드마다 독립된 세션이 유지됩니다.\n"
-                    "`!cancel` 취소 | `!reset` 세션 리셋 | `!restart` 재시작 | `!status` 상태 | `!model` 모델 변경"
+                    "`!cancel` 취소 | `!reset` 세션 리셋 | `!restart` 재시작 | `!status` 상태 | `!model` 모델 변경\n첨부파일 수신 가능 · Claude 응답에 `FILE: /경로/파일` 작성 시 파일 전송"
                 )
             except discord.Forbidden:
                 log.warning("채널 %s에 전송 권한 없음", CHANNEL_ID)
@@ -476,7 +583,8 @@ async def on_message(message: discord.Message):
         return
 
     content = message.content.strip()
-    if not content:
+    has_attachments = len(message.attachments) > 0
+    if not content and not has_attachments:
         return
 
     thread_id = get_thread_id(message)
@@ -575,8 +683,13 @@ async def on_message(message: discord.Message):
     # 스레드 안에서 메시지 → 해당 세션으로 전달
     # ────────────────────────────────────────
     if thread_id:
+        prompt = content or "(메시지 본문 없음)"
+        if has_attachments:
+            files = await download_attachments(message, thread_id)
+            prompt = build_prompt_with_attachments(prompt, files)
+
         await message.add_reaction("📨")
-        await gateway.ask(content, message.channel, thread_id)
+        await gateway.ask(prompt, message.channel, thread_id)
         return
 
     # ────────────────────────────────────────
@@ -613,8 +726,13 @@ async def on_message(message: discord.Message):
             await message.channel.send("❌ 스레드 생성에 실패했습니다.")
             return
 
+    prompt = content or "(메시지 본문 없음)"
+    if has_attachments:
+        files = await download_attachments(message, thread.id)
+        prompt = build_prompt_with_attachments(prompt, files)
+
     await message.add_reaction("📨")
-    await gateway.ask(content, thread, thread.id)
+    await gateway.ask(prompt, thread, thread.id)
 
 
 # ──────────────────────────────────────────────
