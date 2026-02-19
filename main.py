@@ -75,6 +75,32 @@ def chunk_text(text: str, limit: int = DISCORD_MAX_LEN) -> list[str]:
     return chunks
 
 
+def get_default_model() -> str:
+    """
+    Claude Code의 기본 모델을 확인합니다.
+    우선순위: CLAUDE_EXTRA_ARGS --model > settings.json > 기본값
+    """
+    # 1. CLAUDE_EXTRA_ARGS에서 --model 확인
+    if CLAUDE_EXTRA_ARGS:
+        args = CLAUDE_EXTRA_ARGS.split()
+        for i, arg in enumerate(args):
+            if arg == "--model" and i + 1 < len(args):
+                return args[i + 1]
+
+    # 2. settings.json 확인
+    settings_path = Path.home() / ".claude" / "settings.json"
+    if settings_path.exists():
+        try:
+            settings = json.loads(settings_path.read_text())
+            if "model" in settings:
+                return settings["model"]
+        except Exception:
+            pass
+
+    # 3. 기본값
+    return "sonnet"
+
+
 # ──────────────────────────────────────────────
 # 세션 매핑 관리
 # ──────────────────────────────────────────────
@@ -522,9 +548,12 @@ async def on_message(message: discord.Message):
                 )
             await message.channel.send(status_text)
         else:
+            default_model = get_default_model()
+            model_label = next((l for m, l in MODEL_CHOICES if m == default_model), default_model)
             await message.channel.send(
                 f"📊 활성 세션: **{len(gateway.sessions._map)}**개\n"
-                f"처리 중: **{sum(gateway._busy.values())}**건"
+                f"처리 중: **{sum(gateway._busy.values())}**건\n"
+                f"기본 모델: **{model_label}** (`{default_model}`)"
             )
         return
 
