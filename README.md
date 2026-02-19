@@ -143,6 +143,7 @@ chmod +x setup_all.sh
 5. Run `claude` and finish Claude login.
 6. Exit Claude, then run `vi .env` and fill Discord bot values.
 7. Run `claudegateway`.
+8. In Termux, tap the Termux notification in the top status bar and enable **Acquire Wakelock** so it keeps running even when the screen is off.
 
 ### Environment Variables
 
@@ -413,6 +414,7 @@ chmod +x setup_all.sh
 5. 이 상태에서 `claude`를 실행해 Claude 로그인을 완료합니다.
 6. 로그인 후 Claude를 종료하고 `vi .env`로 디스코드 봇 값을 저장합니다.
 7. 마지막으로 `claudegateway`를 실행하면 게이트웨이가 시작됩니다.
+8. Termux 실행 후 상단 알림줄의 Termux 알림을 눌러 **Acquire Wakelock**을 켜면 화면이 꺼진 상태에서도 계속 동작합니다.
 
 ### 환경 변수 설정
 
