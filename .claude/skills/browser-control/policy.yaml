@@ -1,0 +1,10 @@
+{
+  "write_allowed_hosts": [
+    "docs.openclaw.ai",
+    "github.com"
+  ],
+  "read_blocked_hosts": [
+    "facebook.com",
+    "x.com"
+  ]
+}
