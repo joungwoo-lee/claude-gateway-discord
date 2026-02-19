@@ -2,7 +2,7 @@
 
 **Use Claude Code CLI like OpenClaw through Discord** — OpenClaw token usage becoming too expensive? This project lets you use Claude Code as an alternative to OpenClaw. Control Claude Code directly from Discord, manage different models per session, and leverage RAG-powered access to past conversation history.
 
-A gateway bot that maintains independent Claude Code sessions per Discord thread, forwarding user messages to Claude Code and streaming responses back to Discord. It also runs on Android via Termux, so you can keep your gateway online from a phone. Perfect for developers who want interactive Claude Code workflows within Discord without leaving your chat.
+A gateway bot that maintains independent Claude Code sessions per Discord thread, forwarding user messages to Claude Code and streaming responses back to Discord. It also runs on Android via Termux—try running it on an unused phone or tablet. Perfect for developers who want interactive Claude Code workflows within Discord without leaving your chat.
 
 ## Quick Start
 
@@ -274,7 +274,7 @@ MIT
 
 # Discord ↔ Claude Code 게이트웨이 봇 (한국어)
 
-Discord 스레드별로 독립된 Claude Code 세션을 유지하며, 사용자의 메시지를 Claude Code로 전달하고 응답을 실시간 스트리밍하는 게이트웨이 봇입니다. 안드로이드 Termux 환경에서도 구동할 수 있어 폰에서도 게이트웨이를 운영할 수 있습니다.
+Discord 스레드별로 독립된 Claude Code 세션을 유지하며, 사용자의 메시지를 Claude Code로 전달하고 응답을 실시간 스트리밍하는 게이트웨이 봇입니다. 안드로이드 Termux 환경에서도 구동할 수 있으니, 안 쓰는 폰이나 태블릿에서 실행해 보세요.
 
 ## 실행법
 
