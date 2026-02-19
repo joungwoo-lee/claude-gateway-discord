@@ -50,8 +50,30 @@ USER_SCRIPT
 UBUNTU_SCRIPT
 
 echo "[4/5] Termux 시작 시 자동 로그인 설정..."
-sed -i '/proot-distro login ubuntu/d' ~/.bashrc
-echo "proot-distro login ubuntu --user claudegateway" >> ~/.bashrc
+AUTO_LOGIN_CMD='proot-distro login ubuntu --user claudegateway'
+for rc in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
+  touch "$rc"
+  sed -i '/proot-distro login ubuntu --user claudegateway/d' "$rc"
+  printf '
+# added by setup_on_android_termux.sh
+%s
+' "$AUTO_LOGIN_CMD" >> "$rc"
+done
+
+# Termux 전역 profile.d에도 넣어서 셸 종류와 무관하게 자동 진입되도록 보강
+mkdir -p "$PREFIX/etc/profile.d"
+cat > "$PREFIX/etc/profile.d/auto_ubuntu_login.sh" <<'PROFILED'
+# added by setup_on_android_termux.sh
+# Only run in Termux host shell (not already inside Ubuntu proot)
+if command -v proot-distro >/dev/null 2>&1; then
+  case "${PWD:-}" in
+    /data/data/com.termux/*)
+      exec proot-distro login ubuntu --user claudegateway
+      ;;
+  esac
+fi
+PROFILED
+chmod +x "$PREFIX/etc/profile.d/auto_ubuntu_login.sh"
 
 echo "[5/5] 완료"
 echo "------------------------------------------------"
